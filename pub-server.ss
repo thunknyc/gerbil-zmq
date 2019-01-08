@@ -10,5 +10,5 @@
          (body (format "~A ~A" topic message)))
     (printf "Message: ~S\n" body)
     (send-string s body 0)
-    (thread-sleep! 1)
+    (thread-sleep! 0.1)
     (lp)))

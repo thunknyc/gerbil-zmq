@@ -6,6 +6,6 @@
 (connect s "tcp://localhost:5556")
 (subscribe s "100")
 (let lp ()
-  (let (message (recv-string s 128 0))
+  (let (message (receive s 128))
     (when message (printf "Got a message: ~S\n" message))
     (lp)))

@@ -1,4 +1,5 @@
-(import :std/foreign)
+(import :std/foreign
+        :gerbil/gambit)
 
 (export #t)
 
@@ -11,7 +12,7 @@
             msg-copy msg-move
             socket close getsockopt setsockopt-string bind connect
             send recv send-const socket-monitor
-            send-string
+            send-string recv-string-primitive
             errno strerror version
             atomic-counter-new atomic-counter-set
             atomic-counter-inc atomic-counter-dec
@@ -164,7 +165,7 @@ END-C
 END-C
 )
 
-  (define-c-lambda recv-string (socket int int) char-string
+  (define-c-lambda recv-string-primitive (socket int int) char-string
     #<<END-C
 
 char *s = (char *)malloc(___arg2+1);
@@ -405,3 +406,13 @@ END-C
 
 (def (unsubscribe s filter)
   (setsockopt-string s ZMQ_UNSUBSCRIBE filter))
+
+(def (receive s max-length)
+  (let lp ((interval 0.05))
+    (let (result (recv-string-primitive s max-length ZMQ_DONTWAIT))
+      (cond (result result)
+            ((eq? (errno) 35)
+             (thread-sleep! interval)
+             (lp (sqrt (* interval 2.0))))
+            (else
+             #f)))))
