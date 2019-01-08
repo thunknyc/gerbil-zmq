@@ -9,8 +9,9 @@
             msg-data msg-size msg-more
             msg-gets msg-gets msg-set
             msg-copy msg-move
-            socket close getsockopt setsockopt bind connect
+            socket close getsockopt setsockopt-string bind connect
             send recv send-const socket-monitor
+            send-string
             errno strerror version
             atomic-counter-new atomic-counter-set
             atomic-counter-inc atomic-counter-dec
@@ -83,7 +84,8 @@
             ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA
 )
 
-  (c-declare "#include <zmq.h>\n")
+  (c-declare "#include <string.h>")
+  (c-declare "#include <zmq.h>")
   (c-define-type ctx (pointer void))
   (c-define-type msg (pointer "zmq_msg_t"))
   (c-define-type socket (pointer void))
@@ -140,12 +142,48 @@
     int
     "zmq_setsockopt")
 
+  (define-c-lambda setsockopt-string
+    (socket int char-string)
+    int
+    #<<END-C
+    ___return(zmq_setsockopt(___arg1,
+                             ___arg2,
+                             (void *)___arg3,
+                             strlen(___arg3)));
+END-C
+)  
   (define-c-lambda bind (socket char-string) int "zmq_bind")
   (define-c-lambda connect (socket char-string) int "zmq_connect")
 
   (define-c-lambda send (socket (pointer void) size_t int) int "zmq_send")
   (define-c-lambda recv (socket (pointer void) size_t int) int "zmq_recv")
 
+  (define-c-lambda send-string (socket char-string int) int
+    #<<END-C
+    ___return(zmq_send(___arg1, ___arg2, strlen(___arg2), ___arg3));
+END-C
+)
+
+  (define-c-lambda recv-string (socket int int) char-string
+    #<<END-C
+
+char *s = (char *)malloc(___arg2+1);
+int ret;
+if (s != NULL) {
+  ret = zmq_recv(___arg1, s, ___arg2, ___arg3);
+  if (ret == -1) {
+    ___return(NULL);
+  } else {
+    s[ret] = '\0';
+    ___return(s);
+  }
+___return(NULL);
+}
+#define ___AT_END if (s != NULL) free(s);
+
+END-C
+)
+  
   (define-c-lambda send-const
     (socket (pointer void) size_t int)
     int
@@ -347,4 +385,23 @@
   (define-const ZMQ_PROTOCOL_ERROR_ZAP_BAD_REQUEST_ID)
   (define-const ZMQ_PROTOCOL_ERROR_ZAP_BAD_VERSION)
   (define-const ZMQ_PROTOCOL_ERROR_ZAP_INVALID_STATUS_CODE)
-  (define-const ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA))
+  (define-const ZMQ_PROTOCOL_ERROR_ZAP_INVALID_METADATA)
+
+  (define-const ZMQ_MORE)
+  (define-const ZMQ_SHARED)
+
+  (define-const ZMQ_DONTWAIT)
+  (define-const ZMQ_SNDMORE)
+
+  (define-const ZMQ_NULL)
+  (define-const ZMQ_PLAIN)
+  (define-const ZMQ_CURVE)
+  (define-const ZMQ_GSSAPI)
+
+  (define-const ZMQ_GROUP_MAX_LENGTH))
+
+(def (subscribe s filter)
+  (setsockopt-string s ZMQ_SUBSCRIBE filter))
+
+(def (unsubscribe s filter)
+  (setsockopt-string s ZMQ_UNSUBSCRIBE filter))
