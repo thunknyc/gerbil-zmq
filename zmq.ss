@@ -12,6 +12,9 @@
             socket close getsockopt setsockopt bind connect
             send recv send-const socket-monitor
             errno strerror version
+            atomic-counter-new atomic-counter-set
+            atomic-counter-inc atomic-counter-dec
+            atomic-counter-value atomic-counter-destroy
             ZMQ_VERSION_MAJOR ZMQ_VERSION_MINOR ZMQ_VERSION_PATCH
             EFSM ENOCOMPATPROTO ETERM EMTHREAD
             ZMQ_IO_THREADS ZMQ_MAX_SOCKETS ZMQ_SOCKET_LIMIT
@@ -84,6 +87,7 @@
   (c-define-type ctx (pointer void))
   (c-define-type msg (pointer "zmq_msg_t"))
   (c-define-type socket (pointer void))
+  (c-define-type counter (pointer void))
 
   (c-define-type ffn (function ((pointer void) (pointer void)) void))
 
@@ -166,6 +170,28 @@
     void
     "zmq_version")
 
+  ;; Atomic counters
+
+  (define-c-lambda atomic-counter-new () counter "zmq_atomic_counter_new")
+
+  (define-c-lambda atomic-counter-set
+    (counter int)
+    void
+    "zmq_atomic_counter_set")
+
+  (define-c-lambda atomic-counter-inc (counter) int "zmq_atomic_counter_inc")
+  (define-c-lambda atomic-counter-dec (counter) int "zmq_atomic_counter_dec")
+
+  (define-c-lambda atomic-counter-value
+    (counter)
+    int
+    "zmq_atomic_counter_value")
+
+  (define-c-lambda atomic-counter-destroy
+    ((pointer counter))
+    void
+    "zmq_atomic_counter_destroy")
+
   ;; Constants
 
   (define-const ZMQ_VERSION_MAJOR)
@@ -205,7 +231,7 @@
   (define-const ZMQ_XPUB)
   (define-const ZMQ_XSUB)
   (define-const ZMQ_STREAM)
-  
+
   (define-const ZMQ_AFFINITY)
   (define-const ZMQ_ROUTING_ID)
   (define-const ZMQ_SUBSCRIBE)
